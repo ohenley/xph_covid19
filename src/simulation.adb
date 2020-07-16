@@ -22,12 +22,11 @@ with utilities; use utilities;
 
 procedure simulation is
 
-
-   data_filename : String := "../data/covid19.csv";
+   data_filename : string := "../data/covid19.csv";
 
    c : country;
-   start_day_index : Integer := 65; -- start day, from the beginning
-   end_day_index : Integer := -1; -- end day for special cases
+   start_day_index : integer := 65; -- start day, from the beginning
+   end_day_index : integer := -1; -- end day for special cases
    steps : integer := 20;
    minimize_by_density : boolean := false;
    zoom_factor : float := 4.0;
@@ -47,7 +46,7 @@ begin
    cmd_line : loop
       case getopt ("s: d e:") is
          when ascii.nul => exit;
-            when 's' => start_day_index := integer'value(parameter);  -- get the start day for modeling e.g. -s 15
+         when 's' => start_day_index := integer'value(parameter);  -- get the start day for modeling e.g. -s 15
          when 'e' => end_day_index := integer'value(parameter); -- get the end day for modeling e.g. -e 60
          when 'd' =>
             minimize_by_density := true; -- minimize by density, not rates

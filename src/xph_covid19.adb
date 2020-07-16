@@ -34,7 +34,7 @@ package body xph_covid19 is
    function determine_end_day_index (ce : country_entries_array; start_day_index : integer; end_day_index : integer) return integer is
       end_day : integer;
    begin
-      if end_day_index > 1 and then (end_day_index - start_day_index) > 5 then --end point must be at least 5 days after start
+      if end_day_index > 1 and then (end_day_index - start_day_index) > 5 then -- end point must be at least 5 days after start
          end_day := end_day_index;
       else
          end_day := ce'last;
@@ -75,7 +75,7 @@ package body xph_covid19 is
                declare
                   element : country_entry;
                begin
-                  element.date := ada.calendar.arithmetic."+" (ce (i).date, Day_Count(j));
+                  element.date := ada.calendar.arithmetic."+" (ce (i-1).date, Day_Count(j));
                   element.cases := 0.0;
                   data.Append (element);
                end;
@@ -98,15 +98,15 @@ package body xph_covid19 is
          data (i).infection_rate := data (i).cumulative_cases - data (i - 1).cumulative_cases;
       end loop;
 
-      --for item of data loop
-         --Put_Line ("-----------------------------");
-         --Put_Line (Image(item.date));
-         --Put_Line ("day_index: " & float'Image(item.day_index));
-         --Put_Line ("cases: " & float'Image(item.cases));
-         --Put_Line ("cumulative_cases: " & float'Image(item.cumulative_cases));
-         --Put_Line ("cumulative_cases_density: " & float'Image(item.cumulative_cases_density));
-         --Put_Line ("infection_rate: " & float'Image(item.infection_rate));
-      --end loop;
+      --  for item of data loop
+      --     Put_Line ("-----------------------------");
+      --     Put_Line (Image(item.date));
+      --     Put_Line ("day_index: " & float'Image(item.day_index));
+      --     Put_Line ("cases: " & float'Image(item.cases));
+      --     Put_Line ("cumulative_cases: " & float'Image(item.cumulative_cases));
+      --     Put_Line ("cumulative_cases_density: " & float'Image(item.cumulative_cases_density));
+      --     Put_Line ("infection_rate: " & float'Image(item.infection_rate));
+      --  end loop;
 
       return to_country_entries_array (data);
    end;
