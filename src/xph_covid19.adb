@@ -391,7 +391,7 @@ package body xph_covid19 is
 
    begin
       start_time := clock;
-      put_line ("Starting zoom.");
+      put_line ("Start ZOOMING.");
 
       while improvement > minimal_improvement_percentage loop
 

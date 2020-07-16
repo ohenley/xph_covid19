@@ -38,7 +38,7 @@ package body Serialization is
       put_line ("Usage: xph_covid19 -c [number of computing cores] -s [start day] -e [end day]");
       put_line ("-d (if to minimize by density instead of rate) country_ID (e.g. NZL)");
       put_line ("covid19.csv must be in the working directory");
-      put_line ("Example: xph_covid19 -s 68 -c 4 - d NZL");
+      put_line ("Example: xph_covid19 -s 68 -c 4 -d NZL");
    end;
 
    procedure show_software_infos is
