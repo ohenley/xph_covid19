@@ -131,13 +131,15 @@ package body Serialization is
                      ma : country_entries_array;
                      maf : country_entries_array;
                      minimize_by_density : Boolean;
-                     model_set1 : model_parameters;
-                     bend : integer;
-                     area : float) is
+                     model : model_parameters;
+                     bend : integer) is
+
+      area : float := all_countries(c).area;
 
       function create_row_data(Cc : country_entry) return String is
          Ts : Unbounded_String := To_Unbounded_String (Trim (Image (Cc.date, ISO_Date), Both)) & ", ";
          Tts : String(1..100);
+
       begin
          ts := ts & to_unbounded_string (trim (integer'image (integer (cc.day_index)), both)) & ", ";
          Ts := Ts & To_Unbounded_String (Trim (Integer'Image (Integer (Cc.Cases)), Both)) & ", " & To_Unbounded_String (Trim (Integer'Image (Integer (Cc.cumulative_cases)), Both)) & ", ";
@@ -149,7 +151,7 @@ package body Serialization is
          Ts := Ts & Trim (Tts, Both) &", ";
          Put (Tts, Cc.cumulative_cases_density_simulated, 4, 1);
          Ts := Ts & Trim (Tts, Both) &", ";
-         Put (Tts, Cc.cumulative_cases_density_simulated * all_countries(c).area, 4, 1);
+         Put (Tts, Cc.cumulative_cases_density_simulated * area, 4, 1);
          Ts := Ts & Trim (Tts, Both); --calc. cum. cases
          return To_String(Ts);
       end;
@@ -161,7 +163,7 @@ package body Serialization is
       ada.text_io.put_line (outf, "#COVID-19 Progression Model. XR Pharmaceuticals Ltd. 2020, www.xph.co.nz");
       ada.text_io.put_line (outf, "# " &trim(all_countries (c).name,both) & ",Pop:," & integer'image (integer (all_countries (c).pop)) & ",Pop. density:," & float'image (all_countries (c).pd)& ", Model days: "
                             & integer'image(start_day_index) & " to " & integer'image(end_day) & ", Opt_by_density: " & minimize_by_density'img);
-      ada.text_io.put_line (outf, "#Model parameters:,a1:," & float'image (model_set1.u(a1)) & ",b1:," & float'image (model_set1.u(b1)) & ",b2:," & float'image (model_set1.u(b2)) & ",k1:," & float'image (model_set1.u(k1)) & ",k2:," & float'image (model_set1.u(k2))
+      ada.text_io.put_line (outf, "#Model parameters:,a1:," & float'image (model.u(a1)) & ",b1:," & float'image (model.u(b1)) & ",b2:," & float'image (model.u(b2)) & ",k1:," & float'image (model.u(k1)) & ",k2:," & float'image (model.u(k2))
                             & ",bend date:," & image (maf (bend).date, iso_date) & ",cumulative cases:," & integer'image(integer (maf (maf'last).cumulative_cases_density_simulated * area)));
       ada.text_io.put_line (outf, "#Date, Day,Cases,CumCases,CumDens,Rate,CalcRate,CalcDens,CalcCumCases");
       for n in maf'range loop
@@ -176,10 +178,11 @@ package body Serialization is
                      end_day_index : Integer;
                      ma : country_entries_array;
                      maf : country_entries_array;
-                     model_set1 : model_parameters;
+                     model : model_parameters;
                      bend : integer;
-                     area : float;
                      first_case:integer) is --fn is without extension
+
+      area : float := all_countries(c).area;
       gpf : file_type;
       tf : integer := integer(float'ceiling (maf (maf'last).cumulative_cases_density_simulated * area / 100.0) * 100.0);
       x_first : string := image (maf (first_case).date - 5, iso_date);
@@ -188,6 +191,7 @@ package body Serialization is
       y_bend : integer := integer (maf (bend).cumulative_cases_density_simulated * area);
       every_label : integer := first_case-1;
       end_label : integer;
+
    begin
       if end_day_index > 0 and (end_day_index - start_day_index) > 5 then
          end_label := integer(end_day_index);
@@ -209,8 +213,8 @@ package body Serialization is
       put_line (gpf, "set xrange [""" & x_first & """:""2020-10-01""]");
       put_line (gpf, "set arrow from " & """" & x_bend & """"  & ",0 to " &  """" & x_bend & """" & ", " & y_bend'img & " nohead lw 3 lc rgb 'dark-turquoise'");
       put (gpf, "set label """ & trim (all_countries (c).name, both)  & """" & " at """ & x_first1 & ""","); put (gpf, integer(float(tf) * 0.9)); put (gpf, " left"); new_line(gpf);
-      put (gpf, "set label ""Model parameters: a1: "); put (gpf, model_set1.u(a1), 1, 3,1); put (gpf, " b1: "); put (gpf, model_set1.u(b1), 1, 3,1); put (gpf, " b2: ");
-      put (gpf, model_set1.u(b2), 1,3, 1); put (gpf, " k1: "); put (gpf, model_set1.u(k1),1,3, 1); put (gpf, " k2: "); put (gpf, model_set1.u(k2), 1, 3, 1); put (gpf, """ at """ & x_first1 & ""","); put (gpf, integer(float(tf) * 0.85)); put (gpf, " left"); new_line(gpf);
+      put (gpf, "set label ""Model parameters: a1: "); put (gpf, model.u(a1), 1, 3,1); put (gpf, " b1: "); put (gpf, model.u(b1), 1, 3,1); put (gpf, " b2: ");
+      put (gpf, model.u(b2), 1,3, 1); put (gpf, " k1: "); put (gpf, model.u(k1),1,3, 1); put (gpf, " k2: "); put (gpf, model.u(k2), 1, 3, 1); put (gpf, """ at """ & x_first1 & ""","); put (gpf, integer(float(tf) * 0.85)); put (gpf, " left"); new_line(gpf);
       put (gpf, "set label ""Cumulative cases: "); put (gpf, integer'image(integer (maf (maf'last).cumulative_cases_density_simulated * area))); put (gpf, ". Bend at " & x_bend & """" & " at """ & x_first1 & ""","); put (gpf, integer(float(tf) * 0.8)); put (gpf, " left"); new_line(gpf);
       put (gpf, "set label ""(C) XR Pharmaceuticals Ltd. xph.co.nz, 2020"" at " & """" & x_first1 & """" & ", "); put (gpf, -integer(float(tf)*0.053)); put(gpf," left"); new_line(gpf);
       put_line (gpf, "plot '" & base_name(fn) & ".csv' every ::" & trim (every_label'img, both) & "::" & trim (integer'Image(ma'last-1), both) & " using 1:4 with points pt 7 lw 3 lc rgb 'brown',\");

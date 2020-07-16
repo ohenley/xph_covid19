@@ -148,12 +148,11 @@ begin
          -- produce data out
          declare
             dir_out : String := make_data_dir_out (c, start_day_index, end_day_index, covid_data, minimize_by_density);
-            area : constant float := all_countries (c).area;
             csv_filename : String := dir_out & country'image (c) & "_forecast.csv";
             gp_filename : String := dir_out & country'image (c) & "_forecast";
          begin
-            csv_out(csv_filename, c, end_day_index, start_day_index, covid_data, forecast_ce, minimize_by_density, model, bend, area);
-            gp_out (gp_filename, c, end_day_index, start_day_index, covid_data, forecast_ce, model, bend, area, first_case);
+            csv_out(csv_filename, c, end_day_index, start_day_index, covid_data, forecast_ce, minimize_by_density, model, bend);
+            gp_out (gp_filename, c, end_day_index, start_day_index, covid_data, forecast_ce, model, bend, first_case);
          end;
       end;
    end;

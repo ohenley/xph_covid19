@@ -27,11 +27,9 @@ package Serialization is
                       end_day_index : Integer;
                       ma : country_entries_array;
                       maf : country_entries_array;
-                      --outf : in out file_type;
                       minimize_by_density : Boolean;
-                      model_set1 : model_parameters;
-                      bend : integer;
-                      area : float);
+                      model : model_parameters;
+                      bend : integer);
 
    procedure gp_out (fn : in string;
                      c : Country;
@@ -39,9 +37,8 @@ package Serialization is
                      end_day_index : Integer;
                      ma : country_entries_array;
                      maf : country_entries_array;
-                     model_set1 : model_parameters;
+                     model : model_parameters;
                      bend : integer;
-                     area : float;
                      first_case : integer);
 
    function Nicef (Tf : IN Float) return String;
