@@ -13,18 +13,18 @@ with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Ada.strings.Unbounded.Text_IO; use Ada.strings.Unbounded.Text_IO;
 with Ada.Strings; use Ada.Strings;
 with Ada.Strings.Fixed; use Ada.Strings.Fixed;
-with Ada.Containers.Generic_Array_Sort; -- use Ada.Containers.Generic_Array_Sort;
+with Ada.Containers.Generic_Array_Sort;
 -----------------------------------
 with Ada.Calendar; use Ada.Calendar;
 with Ada.Calendar.Arithmetic; use Ada.Calendar.Arithmetic;
 -----------------------------------
 with Ada.exceptions; use Ada.exceptions;
+-----------------------------------
 
 with xph_covid19.data; use xph_covid19.data;
+with utilities; use utilities;
 
-with Utilities; use Utilities;
-
-package body Serialization is
+package body serialization is
 
    procedure show_credentials is
    begin
@@ -53,7 +53,7 @@ package body Serialization is
 
    function get_country_data (filename: String; c : Country) return country_entries_array is
 
-      data : country_entries_vector.Vector;
+      country_entries : country_entries_vector.Vector;
       inf : file_type;
       ts : Unbounded_String;
       ss : Slice_Set;
@@ -76,7 +76,7 @@ package body Serialization is
             begin
                element.date := time_of (y, m, d);
                element.cases := float'value (slice (ss, 5));
-               data.Append (element);
+               country_entries.Append (element);
             end;
          end if;
 
@@ -84,7 +84,7 @@ package body Serialization is
 
       close (inf);
 
-      return to_earray (data);
+      return to_country_entries_array (country_entries);
    end;
 
    procedure show_model_unknows (model : model_parameters) is
@@ -93,33 +93,32 @@ package body Serialization is
    end;
 
 
-   function Nicef (Tf:IN Float) return String is
-      Ttf : String(1..100);
+   function nice_float (tf : Float) return String is
+      ttf : String(1..100);
    begin
-      Put (Ttf, Tf, 1,0);
-      return Trim (Ttf, Both);
+      Put (ttf, tf, 1,0);
+      return trim (ttf, both);
    end;
 
-   function make_data_dir_out (c : Country;
-                               start_day_index : Integer;
-                               end_day_index : Integer;
+   function make_data_dir_out (c : country;
+                               start_day_index : integer;
+                               end_day_index : integer;
                                ma : country_entries_array;
-                               minimize_by_density : Boolean) return String is
-      dir_out : Unbounded_String;
-      end_day : integer := find_end_day (ma, start_day_index, end_day_index);
+                               minimize_by_density : boolean) return string is
+      dir_out : unbounded_string;
    begin
 
       if minimize_by_density then
-         dir_out := To_Unbounded_String(c'img & "_day_" & trim (integer'image (start_day_index), both) & "_" & trim(integer'image (end_day), both) & "_d\");
+         dir_out := to_unbounded_string(c'img & "_day_" & trim (integer'image (start_day_index), both) & "_" & trim(integer'image (end_day_index), both) & "_d\");
       else
-         dir_out := To_Unbounded_String(c'img & "_day_" & trim (integer'image (start_day_index), both) & "_" & trim(integer'image (end_day), both) & "\");
+         dir_out := to_unbounded_string(c'img & "_day_" & trim (integer'image (start_day_index), both) & "_" & trim(integer'image (end_day_index), both) & "\");
       end if;
 
-      Make_Dir (To_String (dir_out));
+      make_dir (to_string (dir_out));
 
-      return To_String (dir_out);
+      return to_string (dir_out);
 
-   exception when others => return To_String (dir_out);
+   exception when others => return to_string (dir_out);
 
    end;
 
@@ -136,9 +135,9 @@ package body Serialization is
 
       area : float := all_countries(c).area;
 
-      function create_row_data(Cc : country_entry) return String is
-         Ts : Unbounded_String := To_Unbounded_String (Trim (Image (Cc.date, ISO_Date), Both)) & ", ";
-         Tts : String(1..100);
+      function create_row_data(Cc : country_entry) return string is
+         Ts : unbounded_string := To_Unbounded_String (Trim (Image (Cc.date, ISO_Date), Both)) & ", ";
+         Tts : string(1..100);
 
       begin
          ts := ts & to_unbounded_string (trim (integer'image (integer (cc.day_index)), both)) & ", ";
@@ -157,12 +156,12 @@ package body Serialization is
       end;
 
       outf : file_type;
-      end_day : integer := find_end_day (ma, start_day_index, end_day_index);
+
    begin
       ada.text_io.create (outf, out_file, fn);
       ada.text_io.put_line (outf, "#COVID-19 Progression Model. XR Pharmaceuticals Ltd. 2020, www.xph.co.nz");
       ada.text_io.put_line (outf, "# " &trim(all_countries (c).name,both) & ",Pop:," & integer'image (integer (all_countries (c).pop)) & ",Pop. density:," & float'image (all_countries (c).pd)& ", Model days: "
-                            & integer'image(start_day_index) & " to " & integer'image(end_day) & ", Opt_by_density: " & minimize_by_density'img);
+                            & integer'image(start_day_index) & " to " & integer'image(end_day_index) & ", Opt_by_density: " & minimize_by_density'img);
       ada.text_io.put_line (outf, "#Model parameters:,a1:," & float'image (model.u(a1)) & ",b1:," & float'image (model.u(b1)) & ",b2:," & float'image (model.u(b2)) & ",k1:," & float'image (model.u(k1)) & ",k2:," & float'image (model.u(k2))
                             & ",bend date:," & image (maf (bend).date, iso_date) & ",cumulative cases:," & integer'image(integer (maf (maf'last).cumulative_cases_density_simulated * area)));
       ada.text_io.put_line (outf, "#Date, Day,Cases,CumCases,CumDens,Rate,CalcRate,CalcDens,CalcCumCases");
@@ -170,7 +169,7 @@ package body Serialization is
          ada.text_io.put_line (outf, create_row_data (maf (n)));
       end loop;
       close (outf);
-   end csv_out;
+   end;
 
    procedure gp_out (fn : in string;
                      c : Country;
@@ -221,7 +220,6 @@ package body Serialization is
       put_line (gpf, "'" & base_name(fn) & ".csv' every ::" & trim (every_label'img, both) & " using 1:9 with lines dt 2 lw 2 lc rgb 'blue',\");
       put_line (gpf, "'" & base_name(fn) & ".csv' every ::" & trim (integer'image(start_day_index-1), both) & "::" & trim (integer'Image(end_label-1), both) & " using 1:4 with points pt 7 lc rgb 'red'");
       close (gpf);
-   end gp_out;
+   end;
 
-
-end Serialization;
+end serialization;

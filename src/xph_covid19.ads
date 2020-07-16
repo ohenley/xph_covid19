@@ -1,9 +1,10 @@
 with Ada.Calendar; use Ada.Calendar;
+-----------------------------------
 with Ada.Containers.Generic_Array_Sort;
 with Ada.Containers.Vectors;
-
 with Ada.Containers.Synchronized_Queue_Interfaces;
 with Ada.Containers.Unbounded_Synchronized_Queues;
+-----------------------------------
 
 package xph_covid19 is
 
@@ -17,7 +18,7 @@ package xph_covid19 is
                     UKR, URY, USA, UZB, VCT, VEN, VIR, VNM, XKX, ZAF, ZMB, ZWE, PRI, SLE, SSD, TJK, DPL);
 
    type country_data is record
-      name : string(1..32);
+      name : string (1..32);
       area : float; -- km2
       pop : float; -- population
       pd : float; -- pop. density, pop/area
@@ -53,14 +54,14 @@ package xph_covid19 is
    end record;
 
    package country_entries_vector is new Ada.Containers.Vectors(Element_Type => country_entry, Index_Type => Natural);
-
    type country_entries_array is array (integer range <>) of country_entry;
-
 
    function "<" (L, R : country_entry) return Boolean;
    procedure sort_by_date is new Ada.Containers.Generic_Array_Sort (integer, country_entry, country_entries_array);
 
-   function find_end_day (ce : country_entries_array; start_day_index : integer; end_day_index : integer) return integer;
+   -----------------------------------
+
+   function determine_end_day_index (ce : country_entries_array; start_day_index : integer; end_day_index : integer) return integer;
 
    function sanitize_covid_data (ce : in out country_entries_array; c_data: country_data) return country_entries_array;
 

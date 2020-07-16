@@ -14,6 +14,7 @@ with System.Multiprocessors; use System.Multiprocessors;
 with Ada.Containers; use Ada.Containers;
 with Ada.Containers.Vectors;
 -----------------------------------
+
 with xph_covid19; use xph_covid19;
 with xph_covid19.data; use xph_covid19.data;
 with serialization; use serialization;
@@ -61,9 +62,9 @@ begin
       ce : country_entries_array := get_country_data (data_filename, c);
    begin
 
-      end_day_index := find_end_day (ce, start_day_index, end_day_index);
+      end_day_index := determine_end_day_index (ce, start_day_index, end_day_index);
 
-      put_line("Working on " & trim(all_countries(c).name,right) & "; Pop. density " & nicef(all_countries(c).pd));
+      put_line("Working on " & trim(all_countries(c).name,right) & "; Pop. density " & nice_float(all_countries(c).pd));
       put ("Starting at day "); put(start_day_index); new_line;
       put ("Ending at day "); put(end_day_index); new_line;
       put_line (country'Image(c) & ": " & integer'Image(ce'Length) & " entries");

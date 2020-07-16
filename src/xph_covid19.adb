@@ -1,13 +1,17 @@
 with Gnat.Calendar.Time_IO; use Gnat.Calendar.Time_IO;
-
+-----------------------------------
 with Ada.Calendar; use Ada.Calendar;
 with Ada.Calendar.Arithmetic; use Ada.Calendar.Arithmetic;
-with Ada.Numerics.Elementary_Functions; use Ada.Numerics.Elementary_Functions;
-with Ada.Text_IO; use  Ada.Text_IO;
-with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
-with Ada.Containers; use Ada.Containers;
-
 with Ada.Calendar.Formatting;
+-----------------------------------
+with Ada.Numerics.Elementary_Functions; use Ada.Numerics.Elementary_Functions;
+-----------------------------------
+with Ada.Text_IO; use  Ada.Text_IO;
+-----------------------------------
+with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
+-----------------------------------
+with Ada.Containers; use Ada.Containers;
+-----------------------------------
 
 with utilities; use utilities;
 with xph_covid19.data; use xph_covid19.data;
@@ -27,7 +31,7 @@ package body xph_covid19 is
       return fitting_improvement;
    end;
 
-   function find_end_day (ce : country_entries_array; start_day_index : integer; end_day_index : integer) return integer is
+   function determine_end_day_index (ce : country_entries_array; start_day_index : integer; end_day_index : integer) return integer is
       end_day : integer;
    begin
       if end_day_index > 1 and then (end_day_index - start_day_index) > 5 then --end point must be at least 5 days after start
@@ -104,7 +108,7 @@ package body xph_covid19 is
          --Put_Line ("infection_rate: " & float'Image(item.infection_rate));
       --end loop;
 
-      return to_earray (data);
+      return to_country_entries_array (data);
    end;
 
    function get_narrow_unknowns_range (model : model_parameters; zoom_factor : float) return unknowns_range is
@@ -232,7 +236,7 @@ package body xph_covid19 is
       unknowns_ssrate.clear;
       unknowns_ssrate_by_density.clear;
 
-      end_day_index := find_end_day (ce, start_day_index, end_day_index);
+      end_day_index := determine_end_day_index (ce, start_day_index, end_day_index);
 
       for u in a1s'Range loop
          -- start_time := clock;

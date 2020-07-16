@@ -1,12 +1,9 @@
-with Ada.Strings; use Ada.Strings;
-with Ada.Text_IO; use  Ada.Text_IO;
-with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
-
 with xph_covid19; use xph_covid19;
 
-package Serialization is
+package serialization is
 
    procedure show_credentials;
+
    procedure show_usage;
 
    procedure show_software_infos;
@@ -21,7 +18,7 @@ package Serialization is
                                ma : country_entries_array;
                                minimize_by_density : Boolean) return String;
 
-   procedure csv_out (fn : in string;
+   procedure csv_out (fn : string;
                       c : Country;
                       start_day_index : Integer;
                       end_day_index : Integer;
@@ -31,7 +28,7 @@ package Serialization is
                       model : model_parameters;
                       bend : integer);
 
-   procedure gp_out (fn : in string;
+   procedure gp_out (fn : string;
                      c : Country;
                      start_day_index : Integer;
                      end_day_index : Integer;
@@ -41,6 +38,6 @@ package Serialization is
                      bend : integer;
                      first_case : integer);
 
-   function Nicef (Tf : IN Float) return String;
+   function nice_float (tf : float) return string;
 
-end Serialization;
+end serialization;
