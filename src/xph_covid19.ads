@@ -18,9 +18,9 @@ package xph_covid19 is
 
    type country_data is record
       name : string(1..32);
-      area : float; --km2
-      pop : float; --population
-      pd : float; --pop. density, pop/area
+      area : float; -- km2
+      pop : float; -- population
+      pd : float; -- pop. density, pop/area
    end record;
 
    type countries is array (country) of country_data;
@@ -130,7 +130,7 @@ package xph_covid19 is
                                forecast_ce : in out country_entries_array;
                                model : in out model_parameters);
 
-   function detect_bend (c_forcast_entries : country_entries_array) return Integer;
+   function detect_bend (c_forcast_entries : country_entries_array; bend_percent : float) return Integer;
 
    function detect_first_case (ce : country_entries_array; forecast_ce : country_entries_array) return Integer;
 

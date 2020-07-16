@@ -20,20 +20,11 @@ package body xph_covid19 is
       return L.date < R.date;
    end "<";
 
-   function refinement_check (model, last_model : in model_parameters; minimal_improvement_percentage : float) return boolean is
-      diff : float := last_model.min_rate - model.min_rate;
-      percentage : float := abs(diff)/last_model.min_rate;
+   function compute_fitting_improvement (model, last_model : in model_parameters) return float is
+      fitting_improvement : float := (last_model.min_rate - model.min_rate) / last_model.min_rate;
    begin
-
-      if diff > 0.0 and percentage > minimal_improvement_percentage then
-         put_line ("Refinement of unknowns worked. New ssrate: " & float'image(model.min_rate) & ", Old ssrate: " & float'image (last_model.min_rate) & ", improvement: " & float'image (percentage));
-         put_line ("Refined unknowns. " & float'image (model.u(a1)) & ", " & float'image (model.u(b1)) & ", " & float'image (model.u(b2)) & ", " & float'image (model.u(k1)) & ", " & float'image (model.u(k2)));
-         return true;
-      else
-         put_line ("Refinement failed. percentage: " & float'image(percentage) & ", minimal_improvement_percentage: " & float'image(minimal_improvement_percentage));
-         return false;
-      end if;
-
+      put_line ("Fitting Improvement. Current ssrate: " & float'image(model.min_rate) & ", Previous ssrate: " & float'image (last_model.min_rate) & ", fitting improvement: " & float'image (fitting_improvement));
+      return fitting_improvement;
    end;
 
    function find_end_day (ce : country_entries_array; start_day_index : integer; end_day_index : integer) return integer is
@@ -121,7 +112,7 @@ package body xph_covid19 is
       unknowns_r : unknowns_range;
    begin
       for u in unknowns'range loop
-         diff := (u_range (u, 2) - u_range (u, 1)) / (2.0 * zoom_factor);
+         diff := (u_range (u, 2) - u_range (u, 1)) / zoom_factor;
          unknowns_r (u, 1) := model.u(u) - diff;
          unknowns_r (u, 2) := model.u(u) + diff;
          put_line("Range " & u'image & ": [" & float'image(unknowns_r (u, 1)) & ", " & float'image(unknowns_r (u, 2)) & "]");
@@ -160,7 +151,6 @@ package body xph_covid19 is
          return to_string (text);
       end;
 
-
       u_increments : unknowns_increments := get_unknowns_increments(steps);
       start_time : time;
    begin
@@ -188,7 +178,9 @@ package body xph_covid19 is
             end loop;
          end loop;
       end loop;
+
       put_line ("Build search set around " & get_center_ranges & " completed in " & duration'image (clock - start_time) & " s.");
+
    end;
 
 
@@ -214,7 +206,7 @@ package body xph_covid19 is
                              unknowns_k2 : unknowns_vector.Vector;
                              unknowns_ssrate : in out unknowns_vector.Vector;
                              unknowns_ssrate_by_density : in out unknowns_vector.Vector) is
-      -- start_time: time;
+      start_time: time;
       pop_density : float := all_countries (c).pd;
       cumulative_cases_density : float;
       infection_rate : float;
@@ -234,6 +226,8 @@ package body xph_covid19 is
       second_term : float;
 
    begin
+
+      start_time := clock;
 
       unknowns_ssrate.clear;
       unknowns_ssrate_by_density.clear;
@@ -274,8 +268,12 @@ package body xph_covid19 is
 
          unknowns_ssrate.append(ssrate);
          unknowns_ssrate_by_density.append(ssrate_by_density);
-         -- put_line ("Evaluating compute_ssrate completed in " & duration'image (clock - start_time) & " s.");
+
+         --put_line ("Evaluating compute_ssrate completed in " & duration'image (clock - start_time) & " s.");
+
       end loop;
+
+      put_line ("Evaluating compute_ssrate completed in " & duration'image (clock - start_time) & " s.");
    end;
 
 
@@ -300,7 +298,9 @@ package body xph_covid19 is
          end if;
       end loop;
       min_rate := smallest;
+
       put_line ("Smallest ssrate is: " & float'image (smallest));
+
       return index;
    end;
 
@@ -386,13 +386,14 @@ package body xph_covid19 is
       pop_density : float := all_countries (c).pd;
       zoom_factor : float := 4.0;
       tdif : float := 0.0;
-      refine : boolean := true; --convergence check
+      improvement : float := 1.0; --convergence check
       min_rate : float := 0.0;
+
    begin
       start_time := clock;
       put_line ("Starting zoom.");
 
-      while refine loop
+      while improvement > minimal_improvement_percentage loop
 
          last_model := model;
 
@@ -421,9 +422,9 @@ package body xph_covid19 is
                                   minimize_by_density);
 
 
-         refine := refinement_check (model, last_model, minimal_improvement_percentage);
+         improvement := compute_fitting_improvement (model, last_model);
 
-         if not refine then
+         if improvement < 0.0 then
             model := last_model;
          end if;
 
@@ -460,18 +461,18 @@ package body xph_covid19 is
          if forecast_ce (n).infection_rate_simulated > model.max_rate then
             model.max_rate := forecast_ce (n).infection_rate_simulated;
          end if;
+
       end loop;
    end;
 
 
-   function detect_bend (c_forcast_entries : country_entries_array) return Integer is
-      tdif1 : float;
-      bend_percent : constant float := 0.85;
+   function detect_bend (c_forcast_entries : country_entries_array; bend_percent : float) return Integer is
+      tdif : float;
       bend : Integer := 1;
    begin
       for n in reverse c_forcast_entries'range loop
-         tdif1 := c_forcast_entries (n).cumulative_cases_density_simulated / c_forcast_entries (c_forcast_entries'last).cumulative_cases_density_simulated;
-         if tdif1 < bend_percent then
+         tdif := c_forcast_entries (n).cumulative_cases_density_simulated / c_forcast_entries (c_forcast_entries'last).cumulative_cases_density_simulated;
+         if tdif < bend_percent then
             bend := n;
             exit;
          end if;
