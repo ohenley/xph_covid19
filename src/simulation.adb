@@ -9,8 +9,6 @@ with Ada.Strings.Fixed; use Ada.Strings.Fixed;
 -----------------------------------
 with Ada.Calendar; use Ada.Calendar;
 -----------------------------------
-with System.Multiprocessors; use System.Multiprocessors;
------------------------------------
 with Ada.Containers; use Ada.Containers;
 with Ada.Containers.Vectors;
 -----------------------------------
@@ -33,6 +31,7 @@ procedure simulation is
    minimal_improvement_percentage : constant float := 0.3;
    fore_term : integer := 400; -- days total (data+forecast)
    bend_percent : float := 0.85;
+   i,j,k,l,m : integer := steps + 1;
 
    time1 : time;
 
@@ -58,7 +57,18 @@ begin
    c := country'value(get_argument); -- the country to model, eg NZL
 
    declare
+      size : integer := i*j*k*l*m;
       ce : country_entries_array := get_country_data (data_filename, c);
+
+      ua1 : uarray_access := new unknowns_array (1 .. size);
+      ub1 : uarray_access := new unknowns_array (1 .. size);
+      ub2 : uarray_access := new unknowns_array (1 .. size);
+      uk1 : uarray_access := new unknowns_array (1 .. size);
+      uk2 : uarray_access := new unknowns_array (1 .. size);
+
+      ssrates : uarray_access := new unknowns_array (1 .. size);
+      ssrates_by_density : uarray_access := new unknowns_array (1 .. size);
+
    begin
 
       end_day_index := determine_end_day_index (ce, start_day_index, end_day_index);
@@ -75,46 +85,42 @@ begin
 
       sort_by_date (ce);
 
+      build_search_set (steps, u_range, ua1, ub1, ub2, uk1, uk2);
+
       declare
          covid_data : country_entries_array := sanitize_covid_data (ce, all_countries (c));
          model : model_parameters;
-         unknowns_a1 : unknowns_vector.Vector;
-         unknowns_b1 : unknowns_vector.Vector;
-         unknowns_b2 : unknowns_vector.Vector;
-         unknowns_k1 : unknowns_vector.Vector;
-         unknowns_k2 : unknowns_vector.Vector;
-         unknowns_ssrate : unknowns_vector.Vector;
-         unknowns_ssrate_by_density : unknowns_vector.Vector;
          forecast_ce : country_entries_array (1 .. fore_term);
       begin
 
-         time1 := clock;
+         put_line ("LENGTH: " & integer'image(ua1'Length));
 
-         build_search_set (steps, u_range, unknowns_a1, unknowns_b1, unknowns_b2, unknowns_k1, unknowns_k2);
+         time1 := clock;
 
          compute_ssrate (c,
                          start_day_index,
                          end_day_index,
                          covid_data,
-                         unknowns_a1,
-                         unknowns_b1,
-                         unknowns_b2,
-                         unknowns_k1,
-                         unknowns_k2,
-                         unknowns_ssrate,
-                         unknowns_ssrate_by_density);
+                         ua1,
+                         ub1,
+                         ub2,
+                         uk1,
+                         uk2,
+                         ssrates,
+                         ssrates_by_density);
 
          characterize_best_model (model,
-                                  unknowns_a1,
-                                  unknowns_b1,
-                                  unknowns_b2,
-                                  unknowns_k1,
-                                  unknowns_k2,
-                                  unknowns_ssrate,
-                                  unknowns_ssrate_by_density,
+                                  ua1,
+                                  ub1,
+                                  ub2,
+                                  uk1,
+                                  uk2,
+                                  ssrates,
+                                  ssrates_by_density,
                                   minimize_by_density);
 
          show_model_unknows (model);
+
 
          zoom (c,
                steps,
@@ -122,13 +128,13 @@ begin
                end_day_index,
                covid_data,
                minimize_by_density,
-               unknowns_a1,
-               unknowns_b1,
-               unknowns_b2,
-               unknowns_k1,
-               unknowns_k2,
-               unknowns_ssrate,
-               unknowns_ssrate_by_density,
+               ua1,
+               ub1,
+               ub2,
+               uk1,
+               uk2,
+               ssrates,
+               ssrates_by_density,
                model,
                minimal_improvement_percentage);
 

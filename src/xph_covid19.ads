@@ -44,7 +44,9 @@ package xph_covid19 is
    type unknowns is array (unknown'Range) of float;
 
    type unknowns_array is array (integer range<>) of float;
+   type uarray_access is access all unknowns_array;
    package unknowns_vector is new Ada.Containers.Vectors(Element_Type => float, Index_Type => Natural);
+   type uvec_access is access all unknowns_vector.Vector;
 
    type unknowns_range is array (unknown'Range, 1..2) of float;
 
@@ -71,36 +73,36 @@ package xph_covid19 is
 
    procedure build_search_set (steps : integer;
                                unknown_r : unknowns_range;
-                               unknowns_a1 : in out unknowns_vector.Vector;
-                               unknowns_b1 : in out unknowns_vector.Vector;
-                               unknowns_b2 : in out unknowns_vector.Vector;
-                               unknowns_k1 : in out unknowns_vector.Vector;
-                               unknowns_k2 : in out unknowns_vector.Vector);
+                               ua1 : in out uarray_access;
+                               ub1 : in out uarray_access;
+                               ub2 : in out uarray_access;
+                               uk1 : in out uarray_access;
+                               uk2 : in out uarray_access);
 
    procedure compute_ssrate (c : country;
                              start_day_index : integer;
-                             end_day_index : in out integer;
+                             end_day_index : integer;
                              ce : country_entries_array;
-                             unknowns_a1 : unknowns_vector.Vector;
-                             unknowns_b1 : unknowns_vector.Vector;
-                             unknowns_b2 : unknowns_vector.Vector;
-                             unknowns_k1 : unknowns_vector.Vector;
-                             unknowns_k2 : unknowns_vector.Vector;
-                             unknowns_ssrate : in out unknowns_vector.Vector;
-                             unknowns_ssrate_by_density : in out unknowns_vector.Vector);
+                             a1s : uarray_access;
+                             b1s : uarray_access;
+                             b2s : uarray_access;
+                             k1s : uarray_access;
+                             k2s : uarray_access;
+                             ssrates : out uarray_access;
+                             ssrates_by_density : out uarray_access);
 
    procedure characterize_best_model (model : in out model_parameters;
-                                      unknowns_a1 : unknowns_vector.Vector;
-                                      unknowns_b1 : unknowns_vector.Vector;
-                                      unknowns_b2 : unknowns_vector.Vector;
-                                      unknowns_k1 : unknowns_vector.Vector;
-                                      unknowns_k2 : unknowns_vector.Vector;
-                                      unknowns_ssrate : unknowns_vector.Vector;
-                                      unknowns_ssrate_by_density : unknowns_vector.Vector;
+                                      a1s : uarray_access;
+                                      b1s : uarray_access;
+                                      b2s : uarray_access;
+                                      k1s : uarray_access;
+                                      k2s : uarray_access;
+                                      ssrates : uarray_access;
+                                      ssrates_by_density : uarray_access;
                                       minimize_by_density : boolean);
 
-   function find_smallest_ssrate (unknowns_ssrate : unknowns_vector.Vector;
-                                  unknowns_ssrate_by_density : unknowns_vector.Vector;
+   function find_smallest_ssrate (ssrates : uarray_access;
+                                  ssrates_by_density : uarray_access;
                                   minimize_by_density : Boolean;
                                   min_rate: in out float) return Integer;
 
@@ -116,13 +118,13 @@ package xph_covid19 is
                    end_day_index : in out integer;
                    covid_data : country_entries_array;
                    minimize_by_density : Boolean;
-                   unknowns_a1 : in out unknowns_vector.Vector;
-                   unknowns_b1 : in out unknowns_vector.Vector;
-                   unknowns_b2 : in out unknowns_vector.Vector;
-                   unknowns_k1 : in out unknowns_vector.Vector;
-                   unknowns_k2 : in out unknowns_vector.Vector;
-                   unknowns_ssrate : in out unknowns_vector.Vector;
-                   unknowns_ssrate_by_density : in out unknowns_vector.Vector;
+                   a1s : in out uarray_access;
+                   b1s : in out uarray_access;
+                   b2s : in out uarray_access;
+                   k1s : in out uarray_access;
+                   k2s : in out uarray_access;
+                   ssrates : in out uarray_access;
+                   ssrates_by_density : in out uarray_access;
                    model : in out model_parameters;
                    minimal_improvement_percentage : float);
 

@@ -12,6 +12,8 @@ with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 -----------------------------------
 with Ada.Containers; use Ada.Containers;
 -----------------------------------
+with System.Multiprocessors; use System.Multiprocessors;
+-----------------------------------
 
 with utilities; use utilities;
 with xph_covid19.data; use xph_covid19.data;
@@ -127,11 +129,11 @@ package body xph_covid19 is
 
    procedure build_search_set (steps : integer;
                                unknown_r : unknowns_range;
-                               unknowns_a1 : in out unknowns_vector.Vector;
-                               unknowns_b1 : in out unknowns_vector.Vector;
-                               unknowns_b2 : in out unknowns_vector.Vector;
-                               unknowns_k1 : in out unknowns_vector.Vector;
-                               unknowns_k2 : in out unknowns_vector.Vector) is
+                               ua1 : in out uarray_access;
+                               ub1 : in out uarray_access;
+                               ub2 : in out uarray_access;
+                               uk1 : in out uarray_access;
+                               uk2 : in out uarray_access) is
 
       type unknowns_increments is array (Unknown'Range) of float;
 
@@ -149,7 +151,7 @@ package body xph_covid19 is
          text : unbounded_string;
       begin
          for u in unknown'Range loop
-           text := text & " " & u'image & ": " & float'image(((unknown_r (u, 2) - unknown_r (u, 1))/2.0) + unknown_r (u, 1));
+            text := text & " " & u'image & ": " & float'image(((unknown_r (u, 2) - unknown_r (u, 1))/2.0) + unknown_r (u, 1));
          end loop;
 
          return to_string (text);
@@ -157,148 +159,158 @@ package body xph_covid19 is
 
       u_increments : unknowns_increments := get_unknowns_increments(steps);
       start_time : time;
+
+      u_a1, u_b1, u_b2, u_k1, u_k2 : uvec_access := new unknowns_vector.vector;
    begin
 
       start_time := clock;
-
-      unknowns_a1.Clear;
-      unknowns_b1.Clear;
-      unknowns_b2.Clear;
-      unknowns_k1.Clear;
-      unknowns_k2.Clear;
 
       for i in 0 .. steps loop --a1
          for j in 0 .. steps loop --b1
             for k in 0 .. steps loop --b2
                for l in 0 .. steps loop --k1
                   for m in 0 .. steps loop --k2
-                     unknowns_a1.Append(unknown_r (a1, 1) + float (i) * u_increments (a1));
-                     unknowns_b1.Append(unknown_r (b1, 1) + float (j) * u_increments (b1));
-                     unknowns_b2.Append(unknown_r (b2, 1) + float (k) * u_increments (b2));
-                     unknowns_k1.Append(unknown_r (k1, 1) + float (l) * u_increments (k1));
-                     unknowns_k2.Append(unknown_r (k2, 1) + float (m) * u_increments (k2));
+                     u_a1.Append(unknown_r (a1, 1) + float (i) * u_increments (a1));
+                     u_b1.Append(unknown_r (b1, 1) + float (j) * u_increments (b1));
+                     u_b2.Append(unknown_r (b2, 1) + float (k) * u_increments (b2));
+                     u_k1.Append(unknown_r (k1, 1) + float (l) * u_increments (k1));
+                     u_k2.Append(unknown_r (k2, 1) + float (m) * u_increments (k2));
                   end loop;
                end loop;
             end loop;
          end loop;
       end loop;
 
+      to_uarray_access (u_a1, ua1);
+      to_uarray_access (u_b1, ub1);
+      to_uarray_access (u_b2, ub2);
+      to_uarray_access (u_k1, uk1);
+      to_uarray_access (u_k2, uk2);
+
+
       put_line ("Build search set around " & get_center_ranges & " completed in " & duration'image (clock - start_time) & " s.");
 
    end;
 
 
-
-   function to_unknowns_array (vec : unknowns_vector.Vector) return unknowns_array is
-      arr: unknowns_array (1..Natural (vec.Length));
-   begin
-      for i in arr'Range loop
-         arr(i) := vec.element(i-1);
-      end loop;
-      return arr;
-   end;
-
-
    procedure compute_ssrate (c : country;
                              start_day_index : integer;
-                             end_day_index : in out integer;
+                             end_day_index : integer;
                              ce : country_entries_array;
-                             unknowns_a1 : unknowns_vector.Vector;
-                             unknowns_b1 : unknowns_vector.Vector;
-                             unknowns_b2 : unknowns_vector.Vector;
-                             unknowns_k1 : unknowns_vector.Vector;
-                             unknowns_k2 : unknowns_vector.Vector;
-                             unknowns_ssrate : in out unknowns_vector.Vector;
-                             unknowns_ssrate_by_density : in out unknowns_vector.Vector) is
-      start_time: time;
-      pop_density : float := all_countries (c).pd;
-      cumulative_cases_density : float;
-      infection_rate : float;
-      rate_diff : float := 0.0;
-      rate_diff_by_density : float := 0.0;
-      ssrate : float := 0.0;
-      ssrate_by_density : float := 0.0;
+                             a1s : uarray_access;
+                             b1s : uarray_access;
+                             b2s : uarray_access;
+                             k1s : uarray_access;
+                             k2s : uarray_access;
+                             ssrates : out uarray_access;
+                             ssrates_by_density : out uarray_access) is
 
-      a1s : unknowns_array := to_unknowns_array (unknowns_a1);
-      b1s : unknowns_array := to_unknowns_array (unknowns_b1);
-      b2s : unknowns_array := to_unknowns_array (unknowns_b2);
-      k1s : unknowns_array := to_unknowns_array (unknowns_k1);
-      k2s : unknowns_array := to_unknowns_array (unknowns_k2);
+      task type tt (first : integer; last : integer);
+      task body tt is
+         --start_time: time;
+         pop_density : float := all_countries (c).pd;
+         cumulative_cases_density : float;
+         infection_rate : float;
+         rate_diff : float := 0.0;
+         rate_diff_by_density : float := 0.0;
+         ssrate : float := 0.0;
+         ssrate_by_density : float := 0.0;
 
-      A : float;
-      first_term : float;
-      second_term : float;
+         A : float;
+         first_term : float;
+         second_term : float;
+      begin
+         pop_density := all_countries (c).pd;
 
-   begin
 
-      start_time := clock;
+         for u in first .. last loop
+            --start_time := clock;
+            rate_diff := 0.0;
+            ssrate := 0.0;
+            rate_diff_by_density := 0.0;
+            ssrate_by_density := 0.0;
+            cumulative_cases_density := ce (start_day_index).cumulative_cases_density;
 
-      unknowns_ssrate.clear;
-      unknowns_ssrate_by_density.clear;
+            for n in start_day_index .. end_day_index loop
 
-      end_day_index := determine_end_day_index (ce, start_day_index, end_day_index);
+               A := pop_density - cumulative_cases_density;
 
-      for u in a1s'Range loop
-         -- start_time := clock;
-         rate_diff := 0.0;
-         ssrate := 0.0;
-         rate_diff_by_density := 0.0;
-         ssrate_by_density := 0.0;
-         cumulative_cases_density := ce (start_day_index).cumulative_cases_density;
+               if A < 0.0 or cumulative_cases_density < 0.0 then
+                  ssrate := 1.0e9;
+                  ssrate_by_density := 1.0e9;
+                  exit;
+               else
+                  first_term := k1s.all(u) * (A ** a1s.all(u)) * (cumulative_cases_density ** b1s.all(u));
+                  second_term := k2s.all(u) * (cumulative_cases_density ** b2s.all(u));
 
-         for n in start_day_index .. end_day_index loop
+                  infection_rate := first_term - second_term;
+                  cumulative_cases_density := cumulative_cases_density + infection_rate;
 
-            A := pop_density - cumulative_cases_density;
+                  rate_diff := infection_rate - ce (n).infection_rate;
+                  ssrate := ssrate + (rate_diff * rate_diff);
 
-            if A < 0.0 or cumulative_cases_density < 0.0 then
-               ssrate := 1.0e9;
-               ssrate_by_density := 1.0e9;
-               exit;
-            else
-               first_term := k1s(u) * (A ** a1s(u)) * (cumulative_cases_density ** b1s(u));
-               second_term := k2s(u) * (cumulative_cases_density ** b2s(u));
+                  rate_diff_by_density := cumulative_cases_density - ce (n).cumulative_cases_density;
+                  ssrate_by_density := ssrate_by_density + (rate_diff_by_density * rate_diff_by_density);
+               end if;
 
-               infection_rate := first_term - second_term;
-               cumulative_cases_density := cumulative_cases_density + infection_rate;
+            end loop;
 
-               rate_diff := infection_rate - ce (n).infection_rate;
-               ssrate := ssrate + (rate_diff * rate_diff);
+            ssrates (u) := ssrate;
+            ssrates_by_density (u) := ssrate_by_density;
 
-               rate_diff_by_density := cumulative_cases_density - ce (n).cumulative_cases_density;
-               ssrate_by_density := ssrate_by_density + (rate_diff_by_density * rate_diff_by_density);
-            end if;
+            --put_line ("Evaluating compute_ssrate completed in " & duration'image (clock - start_time) & " s.");
 
          end loop;
 
-         unknowns_ssrate.append(ssrate);
-         unknowns_ssrate_by_density.append(ssrate_by_density);
-
          --put_line ("Evaluating compute_ssrate completed in " & duration'image (clock - start_time) & " s.");
 
+      end;
+
+      type task_indices is array (1 .. 8) of integer;
+      span : integer := (integer(a1s'length) / integer (number_of_cpus));
+      firsts : task_indices;
+      lasts : task_indices;
+   begin
+      for i in 1 .. 8 loop
+         firsts(i) := (span * integer(i)) - (span - 1);
+         lasts(i) := span * integer(i);
       end loop;
 
-      put_line ("Evaluating compute_ssrate completed in " & duration'image (clock - start_time) & " s.");
+      declare
+         t1 : tt (firsts(1), lasts(1));
+         t2 : tt (firsts(2), lasts(2));
+         t3 : tt (firsts(3), lasts(3));
+         t4 : tt (firsts(4), lasts(4));
+         t5 : tt (firsts(5), lasts(5));
+         t6 : tt (firsts(6), lasts(6));
+         t7 : tt (firsts(7), lasts(7));
+         t8 : tt (firsts(8), lasts(8));
+      begin
+         null;
+      end;
    end;
 
 
-   function find_smallest_ssrate (unknowns_ssrate : unknowns_vector.Vector;
-                                  unknowns_ssrate_by_density : unknowns_vector.Vector;
+   function find_smallest_ssrate (ssrates : uarray_access;
+                                  ssrates_by_density : uarray_access;
                                   minimize_by_density : Boolean;
                                   min_rate: in out float) return Integer is
-      ssrates : unknowns_vector.Vector;
+      ssrates_access : uarray_access;
       smallest : float := float'last;
       index : integer := integer'last;
    begin
       if minimize_by_density then
-         ssrates := unknowns_ssrate_by_density;
+         ssrates_access := ssrates_by_density;
       else
-         ssrates := unknowns_ssrate;
+         ssrates_access := ssrates;
       end if;
 
-      for u in ssrates.first_index .. ssrates.Last_Index loop
-         if ssrates (u) < smallest then
+      for u in ssrates_access'range loop
+
+         if ssrates_access (u) < smallest and ssrates_access (u) > 0.0 then
+            --put_line (float'image (ssrates_access (u)) & " " & integer'image (u));
             index := u;
-            smallest := ssrates (u);
+            smallest := ssrates_access (u);
          end if;
       end loop;
       min_rate := smallest;
@@ -309,24 +321,24 @@ package body xph_covid19 is
    end;
 
    procedure characterize_best_model (model : in out model_parameters;
-                                      unknowns_a1 : unknowns_vector.Vector;
-                                      unknowns_b1 : unknowns_vector.Vector;
-                                      unknowns_b2 : unknowns_vector.Vector;
-                                      unknowns_k1 : unknowns_vector.Vector;
-                                      unknowns_k2 : unknowns_vector.Vector;
-                                      unknowns_ssrate : unknowns_vector.Vector;
-                                      unknowns_ssrate_by_density : unknowns_vector.Vector;
+                                      a1s : uarray_access;
+                                      b1s : uarray_access;
+                                      b2s : uarray_access;
+                                      k1s : uarray_access;
+                                      k2s : uarray_access;
+                                      ssrates : uarray_access;
+                                      ssrates_by_density : uarray_access;
                                       minimize_by_density : boolean) is
       best_unknown_set_index : integer := -1;
       min_rate : float := 0.0;
    begin
-      best_unknown_set_index := find_smallest_ssrate (unknowns_ssrate, unknowns_ssrate_by_density, minimize_by_density, min_rate);
+      best_unknown_set_index := find_smallest_ssrate (ssrates, ssrates_by_density, minimize_by_density, min_rate);
 
-      model.u(a1) := unknowns_a1(best_unknown_set_index);
-      model.u(b1) := unknowns_b1(best_unknown_set_index);
-      model.u(b2) := unknowns_b2(best_unknown_set_index);
-      model.u(k1) := unknowns_k1(best_unknown_set_index);
-      model.u(k2) := unknowns_k2(best_unknown_set_index);
+      model.u(a1) := a1s(best_unknown_set_index);
+      model.u(b1) := b1s(best_unknown_set_index);
+      model.u(b2) := b2s(best_unknown_set_index);
+      model.u(k1) := k1s(best_unknown_set_index);
+      model.u(k2) := k2s(best_unknown_set_index);
       model.min_rate := min_rate;
    end;
 
@@ -375,13 +387,13 @@ package body xph_covid19 is
                    end_day_index : in out integer;
                    covid_data : country_entries_array;
                    minimize_by_density : Boolean;
-                   unknowns_a1 : in out unknowns_vector.Vector;
-                   unknowns_b1 : in out unknowns_vector.Vector;
-                   unknowns_b2 : in out unknowns_vector.Vector;
-                   unknowns_k1 : in out unknowns_vector.Vector;
-                   unknowns_k2 : in out unknowns_vector.Vector;
-                   unknowns_ssrate : in out unknowns_vector.Vector;
-                   unknowns_ssrate_by_density : in out unknowns_vector.Vector;
+                   a1s : in out uarray_access;
+                   b1s : in out uarray_access;
+                   b2s : in out uarray_access;
+                   k1s : in out uarray_access;
+                   k2s : in out uarray_access;
+                   ssrates : in out uarray_access;
+                   ssrates_by_density : in out uarray_access;
                    model : in out model_parameters;
                    minimal_improvement_percentage : float) is
 
@@ -401,30 +413,21 @@ package body xph_covid19 is
 
          last_model := model;
 
-         build_search_set (steps, get_narrow_unknowns_range (model, zoom_factor), unknowns_a1, unknowns_b1, unknowns_b2, unknowns_k1, unknowns_k2);
+         build_search_set (steps, get_narrow_unknowns_range (model, zoom_factor), a1s, b1s, b2s, k1s, k2s);
 
          compute_ssrate (c,
                          start_day_index,
                          end_day_index,
                          covid_data,
-                         unknowns_a1,
-                         unknowns_b1,
-                         unknowns_b2,
-                         unknowns_k1,
-                         unknowns_k2,
-                         unknowns_ssrate,
-                         unknowns_ssrate_by_density);
+                         a1s, b1s, b2s, k1s, k2s,
+                         ssrates,
+                         ssrates_by_density);
 
          characterize_best_model (model,
-                                  unknowns_a1,
-                                  unknowns_b1,
-                                  unknowns_b2,
-                                  unknowns_k1,
-                                  unknowns_k2,
-                                  unknowns_ssrate,
-                                  unknowns_ssrate_by_density,
+                                  a1s, b1s, b2s, k1s, k2s,
+                                  ssrates,
+                                  ssrates_by_density,
                                   minimize_by_density);
-
 
          improvement := compute_fitting_improvement (model, last_model);
 

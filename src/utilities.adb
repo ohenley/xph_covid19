@@ -13,6 +13,13 @@ package body utilities is
       return arr;
    end;
 
+   procedure to_uarray_access (vec_access : uvec_access; arr_access: in out uarray_access) is
+
+   begin
+      for i in vec_access.first_index .. vec_access.last_index loop
+         arr_access(i+1) := vec_access.all.element(i);
+      end loop;
+   end;
 
    procedure launch_gnuplot (c : country; dir_out : unbounded_string) is
       gpcommand : string := "gnuplot " & country'image (c) & "_forecast.gp";
