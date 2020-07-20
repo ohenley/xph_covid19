@@ -1,6 +1,6 @@
 # xph_covid19
 
-Autocatalytic Model for Covid19 Progression in a Country
+[Autocatalytic Model for Covid19 Progression in a Country](https://github.com/ohenley/xph_covid19/blob/master/doc/2020.04.03.20052985v1.full.pdf)
 
 ## Table of Contents
 <details>
