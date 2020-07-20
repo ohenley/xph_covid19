@@ -32,7 +32,6 @@ procedure simulation is
    fore_term : integer := 400; -- days total (data+forecast)
    bend_percent : float := 0.85;
 
-
    i,j,k,l,m : integer := steps + 1;
 
    time1 : time;

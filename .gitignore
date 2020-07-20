@@ -1,4 +1,4 @@
 obj/
 *.exe
-bin/*.csv
-bin/*.gp
+bin/*/*.csv
+bin/*/*.gp
