@@ -39,7 +39,7 @@ package body serialization is
    begin
       put_line ("Usage: xph_covid19 -s [start day] -e [end day]");
       put_line ("-d (if to minimize by density instead of rate) country_ID (e.g. NZL)");
-      put_line ("covid19.csv must be in the working directory");
+      put_line ("covid19.csv must be in the /data directory");
       put_line ("Example: xph_covid19 -s 68 -d NZL");
    end;
 
