@@ -70,7 +70,7 @@ package body xph_covid19 is
          data.Append (item);
       end;
 
-      for i in 2 .. ce'Length loop
+      for i in 2 .. ce'length loop
          days_span := get_number_of_days (ce (i).date, ce (i-1).date);
          if days_span > 1 then
             for j in 1 .. days_span loop
@@ -187,7 +187,6 @@ package body xph_covid19 is
       to_uarray_access (u_k1, uk1);
       to_uarray_access (u_k2, uk2);
 
-
       put_line ("Build search set around " & get_center_ranges & " completed in " & duration'image (clock - start_time) & " s.");
 
    end;
@@ -205,9 +204,24 @@ package body xph_covid19 is
                              ssrates : out uarray_access;
                              ssrates_by_density : out uarray_access) is
 
-      task type tt (first : integer; last : integer);
-      task body tt is
-         --start_time: time;
+      subtype task_id is integer range 0 .. integer(number_of_cpus);
+      subtype valid_task_id is task_id range 1 .. task_id'last;
+
+      last_id : task_id := 0;
+
+      function next_id return valid_task_id is
+      begin
+         last_id := last_id + 1;
+         return last_id;
+      end;
+
+      span : integer := (integer(a1s'length) / integer (number_of_cpus));
+
+      task type worker (id : valid_task_id := next_id);
+      task body worker is
+         first : integer := (span * integer(id)) - (span - 1);
+         last : integer := span * integer(id);
+
          pop_density : float := all_countries (c).pd;
          cumulative_cases_density : float;
          infection_rate : float;
@@ -219,9 +233,11 @@ package body xph_covid19 is
          A : float;
          first_term : float;
          second_term : float;
-      begin
-         pop_density := all_countries (c).pd;
 
+         --start_time: time;
+      begin
+         --start_time := clock;
+         pop_density := all_countries (c).pd;
 
          for u in first .. last loop
             --start_time := clock;
@@ -266,25 +282,11 @@ package body xph_covid19 is
 
       end;
 
-      type task_indices is array (1 .. 8) of integer;
-      span : integer := (integer(a1s'length) / integer (number_of_cpus));
-      firsts : task_indices;
-      lasts : task_indices;
-   begin
-      for i in 1 .. 8 loop
-         firsts(i) := (span * integer(i)) - (span - 1);
-         lasts(i) := span * integer(i);
-      end loop;
+      type worker_set is array (valid_task_id) of worker;
 
+   begin
       declare
-         t1 : tt (firsts(1), lasts(1));
-         t2 : tt (firsts(2), lasts(2));
-         t3 : tt (firsts(3), lasts(3));
-         t4 : tt (firsts(4), lasts(4));
-         t5 : tt (firsts(5), lasts(5));
-         t6 : tt (firsts(6), lasts(6));
-         t7 : tt (firsts(7), lasts(7));
-         t8 : tt (firsts(8), lasts(8));
+         workers : worker_set;
       begin
          null;
       end;
@@ -306,7 +308,6 @@ package body xph_covid19 is
       end if;
 
       for u in ssrates_access'range loop
-
          if ssrates_access (u) < smallest and ssrates_access (u) > 0.0 then
             --put_line (float'image (ssrates_access (u)) & " " & integer'image (u));
             index := u;

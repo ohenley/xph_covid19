@@ -8,6 +8,8 @@ package serialization is
 
    procedure show_software_infos;
 
+   procedure show_simulation_configuration (c: country; start_day_index : integer; end_day_index : integer; ce : country_entries_array);
+
    function get_country_data (filename: String; c : Country) return country_entries_array;
 
    procedure show_model_unknows (model : model_parameters);

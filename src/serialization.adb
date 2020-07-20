@@ -20,6 +20,8 @@ with Ada.Calendar.Arithmetic; use Ada.Calendar.Arithmetic;
 -----------------------------------
 with Ada.exceptions; use Ada.exceptions;
 -----------------------------------
+with System.Multiprocessors; use System.Multiprocessors;
+-----------------------------------
 
 with xph_covid19.data; use xph_covid19.data;
 with utilities; use utilities;
@@ -35,21 +37,29 @@ package body serialization is
 
    procedure show_usage is
    begin
-      put_line ("Usage: xph_covid19 -c [number of computing cores] -s [start day] -e [end day]");
+      put_line ("Usage: xph_covid19 -s [start day] -e [end day]");
       put_line ("-d (if to minimize by density instead of rate) country_ID (e.g. NZL)");
       put_line ("covid19.csv must be in the working directory");
-      put_line ("Example: xph_covid19 -s 68 -c 4 -d NZL");
+      put_line ("Example: xph_covid19 -s 68 -d NZL");
    end;
 
    procedure show_software_infos is
    begin
-      Ada.Text_IO.put_line (45 * "-");
+      ada.text_io.put_line (45 * "-");
       show_credentials;
       show_usage;
-      Ada.Text_IO.put_line (45 * "-");
-      new_line;
    end;
 
+   procedure show_simulation_configuration (c: country; start_day_index : integer; end_day_index : integer; ce : country_entries_array) is
+   begin
+      ada.text_io.put_line (45 * "-");
+      put_line (trim(cpu'image(number_of_cpus), left) & " cores will be used.");
+      put_line ("Working on " & trim(all_countries(c).name, left));
+      put_line ("Pop. density " & nice_float(all_countries(c).pd));
+      put_line ("Starting at day" & integer'image(start_day_index) & ", " & "Ending at day" & integer'image(end_day_index));
+      put_line (country'Image(c) & ": " & integer'Image(ce'length) & " entries");
+      ada.text_io.put_line (45 * "-");
+   end;
 
    function get_country_data (filename: String; c : Country) return country_entries_array is
 

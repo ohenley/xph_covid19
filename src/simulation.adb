@@ -31,6 +31,8 @@ procedure simulation is
    minimal_improvement_percentage : constant float := 0.3;
    fore_term : integer := 400; -- days total (data+forecast)
    bend_percent : float := 0.85;
+
+
    i,j,k,l,m : integer := steps + 1;
 
    time1 : time;
@@ -73,10 +75,7 @@ begin
 
       end_day_index := determine_end_day_index (ce, start_day_index, end_day_index);
 
-      put_line("Working on " & trim(all_countries(c).name,right) & "; Pop. density " & nice_float(all_countries(c).pd));
-      put ("Starting at day "); put(start_day_index); new_line;
-      put ("Ending at day "); put(end_day_index); new_line;
-      put_line (country'Image(c) & ": " & integer'Image(ce'Length) & " entries");
+      show_simulation_configuration (c, start_day_index, end_day_index, ce);
 
       if ce'Length <= start_day_index then
          put_line ("ERROR: not enough data for requested start day (" & integer'image (start_day_index) & ")");
@@ -92,8 +91,6 @@ begin
          model : model_parameters;
          forecast_ce : country_entries_array (1 .. fore_term);
       begin
-
-         put_line ("LENGTH: " & integer'image(ua1'Length));
 
          time1 := clock;
 
