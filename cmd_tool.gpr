@@ -1,0 +1,11 @@
+with "./xph_covid19.gpr";
+
+project cmd_tool is
+
+   for source_dirs use ("./");
+   for object_dir use "obj";
+   for exec_dir use "bin";
+
+   for main use ("simulation.adb");
+
+end cmd_tool;
