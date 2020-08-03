@@ -2,7 +2,9 @@ with Gnat.OS_Lib; use Gnat.OS_Lib;
 with Gnat.Directory_Operations; use Gnat.Directory_Operations;
 -----------------------------------
 
-package body utilities is
+with Ada.Text_IO; use  Ada.Text_IO;
+
+package body xph_covid19.utilities is
 
    function to_country_entries_array (vec : country_entries_vector.Vector) return country_entries_array is
       arr: country_entries_array (1 .. natural (vec.length));
@@ -11,6 +13,15 @@ package body utilities is
          arr(i) := vec.element(i-1);
       end loop;
       return arr;
+   end;
+
+   function to_country_entries_vector(arr : country_entries_array) return country_entries_vector.vector is
+      vec : country_entries_vector.vector;
+   begin
+      for i in arr'range loop
+         vec.append (arr(i));
+      end loop;
+      return vec;
    end;
 
    procedure to_uarray_access (vec_access : uvec_access; arr_access: in out uarray_access) is
@@ -32,4 +43,4 @@ package body utilities is
       change_dir ("..");
    end;
 
-end utilities;
+end xph_covid19.utilities;

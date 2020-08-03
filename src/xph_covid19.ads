@@ -57,6 +57,7 @@ package xph_covid19 is
 
    package country_entries_vector is new Ada.Containers.Vectors(Element_Type => country_entry, Index_Type => Natural);
    type country_entries_array is array (integer range <>) of country_entry;
+   type country_entries_array_access is access all country_entries_array;
 
    function "<" (L, R : country_entry) return Boolean;
    procedure sort_by_date is new Ada.Containers.Generic_Array_Sort (integer, country_entry, country_entries_array);

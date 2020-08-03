@@ -1,6 +1,6 @@
 with xph_covid19; use xph_covid19;
 
-package serialization is
+package xph_covid19.serialization is
 
    procedure show_credentials;
 
@@ -42,4 +42,4 @@ package serialization is
 
    function nice_float (tf : float) return string;
 
-end serialization;
+end xph_covid19.serialization;

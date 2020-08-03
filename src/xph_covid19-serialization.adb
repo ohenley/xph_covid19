@@ -24,9 +24,9 @@ with System.Multiprocessors; use System.Multiprocessors;
 -----------------------------------
 
 with xph_covid19.data; use xph_covid19.data;
-with utilities; use utilities;
+with xph_covid19.utilities; use xph_covid19.utilities;
 
-package body serialization is
+package body xph_covid19.serialization is
 
    procedure show_credentials is
    begin
@@ -232,4 +232,4 @@ package body serialization is
       close (gpf);
    end;
 
-end serialization;
+end xph_covid19.serialization;

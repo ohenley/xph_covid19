@@ -15,11 +15,30 @@ with Ada.Containers; use Ada.Containers;
 with System.Multiprocessors; use System.Multiprocessors;
 -----------------------------------
 
-with utilities; use utilities;
+with xph_covid19.utilities; use xph_covid19.utilities;
 with xph_covid19.data; use xph_covid19.data;
 
 
 package body xph_covid19 is
+
+
+   procedure potatoes is
+      task type worker;
+      task body worker is
+      begin
+         delay 5.0;
+         Put_Line ("in worker, delay over");
+      end;
+
+   begin
+      declare
+         w : worker;
+      begin
+         null;
+      end;
+      Put_Line ("going out of potatoes");
+   end;
+
 
    function "<" (L, R : country_entry) return Boolean is
    begin
@@ -53,10 +72,17 @@ package body xph_covid19 is
 
    function sanitize_covid_data (ce : in out country_entries_array; c_data: country_data) return country_entries_array is
       use Ada.Calendar.Formatting;
-      nbr_days : integer := get_number_of_days (ce(ce'last).date, ce(ce'first).date);
+
+      nbr_days : integer;
       data : country_entries_vector.vector;
       days_span : integer;
    begin
+
+      put_line (integer'image(ce'Length));
+
+      nbr_days := get_number_of_days (ce(ce'last).date, ce(ce'first).date);
+
+      sort_by_date (ce);
 
       declare
          item : country_entry;
@@ -193,16 +219,16 @@ package body xph_covid19 is
 
 
    procedure compute_ssrate (c : country;
-                             start_day_index : integer;
-                             end_day_index : integer;
-                             ce : country_entries_array;
-                             a1s : uarray_access;
-                             b1s : uarray_access;
-                             b2s : uarray_access;
-                             k1s : uarray_access;
-                             k2s : uarray_access;
-                             ssrates : out uarray_access;
-                             ssrates_by_density : out uarray_access) is
+                            start_day_index : integer;
+                            end_day_index : integer;
+                            ce : country_entries_array;
+                            a1s : uarray_access;
+                            b1s : uarray_access;
+                            b2s : uarray_access;
+                            k1s : uarray_access;
+                            k2s : uarray_access;
+                            ssrates : out uarray_access;
+                            ssrates_by_density : out uarray_access) is
 
       subtype task_id is integer range 0 .. integer(number_of_cpus);
       subtype valid_task_id is task_id range 1 .. task_id'last;

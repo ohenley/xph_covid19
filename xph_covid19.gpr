@@ -5,7 +5,7 @@ project xph_covid19 is
    for exec_dir use "bin";
 
    package compiler is
-      for switches ("Ada") use ("-g", "-O3");
+      for switches ("Ada") use ("-g", "-O2");
    end compiler;
 
 end xph_covid19;

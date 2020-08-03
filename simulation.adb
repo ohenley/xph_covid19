@@ -15,8 +15,8 @@ with Ada.Containers.Vectors;
 
 with xph_covid19; use xph_covid19;
 with xph_covid19.data; use xph_covid19.data;
-with serialization; use serialization;
-with utilities; use utilities;
+with xph_covid19.serialization; use xph_covid19.serialization;
+with xph_covid19.utilities; use xph_covid19.utilities;
 
 procedure simulation is
 
@@ -28,7 +28,7 @@ procedure simulation is
    steps : integer := 20;
    minimize_by_density : boolean := false;
    zoom_factor : float := 4.0;
-   minimal_improvement_percentage : constant float := 0.3;
+   minimal_improvement_percentage : float := 0.3;
    fore_term : integer := 400; -- days total (data+forecast)
    bend_percent : float := 0.85;
 
@@ -80,8 +80,6 @@ begin
          put_line ("ERROR: not enough data for requested start day (" & integer'image (start_day_index) & ")");
          raise Program_Error;
       end if;
-
-      sort_by_date (ce);
 
       build_search_set (steps, u_range, ua1, ub1, ub2, uk1, uk2);
 
