@@ -473,7 +473,6 @@ package body xph_covid19 is
                                model : in out model_parameters) is
       pop_density : float := all_countries (c).pd;
       area : float := all_countries (c).area;
-      exc_date : integer;
    begin
       forecast_ce (ce'range) := ce (ce'range);
       model.min_rate := ce (ce'last).infection_rate;
@@ -483,7 +482,6 @@ package body xph_covid19 is
 
          forecast_ce (n).date := forecast_ce (n - 1).date + 1;
          forecast_ce (n).day_index := forecast_ce (n - 1).day_index + 1.0;
-         exc_date := n;
          forecast_ce (n).infection_rate := model.u(k1) * ((pop_density - forecast_ce (n - 1).cumulative_cases_density_simulated) ** model.u(a1)) * (forecast_ce (n - 1).cumulative_cases_density_simulated ** model.u(b1))-model.u(k2) * forecast_ce (n - 1).cumulative_cases_density_simulated ** model.u(b2);
          forecast_ce (n).cumulative_cases_density_simulated := forecast_ce (n - 1).cumulative_cases_density_simulated + forecast_ce (n).infection_rate_simulated;
          forecast_ce (n).cumulative_cases_simulated := forecast_ce (n).cumulative_cases_density_simulated * area;
