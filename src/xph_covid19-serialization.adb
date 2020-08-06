@@ -17,6 +17,7 @@ with Ada.Containers.Generic_Array_Sort;
 -----------------------------------
 with Ada.Calendar; use Ada.Calendar;
 with Ada.Calendar.Arithmetic; use Ada.Calendar.Arithmetic;
+with Ada.Calendar.Formatting; use Ada.Calendar.Formatting;
 -----------------------------------
 with Ada.exceptions; use Ada.exceptions;
 -----------------------------------
@@ -84,7 +85,7 @@ package body xph_covid19.serialization is
                m: Month_Number := month_number'Value (slice (ss, 3));
                y: Year_Number := year_number'Value (slice (ss, 4));
             begin
-               element.date := time_of (y, m, d);
+               element.date := Ada.Calendar.Formatting.time_of (y, m, d);
                element.cases := float'value (slice (ss, 5));
                country_entries.Append (element);
             end;
@@ -150,7 +151,7 @@ package body xph_covid19.serialization is
          Tts : string(1..100);
 
       begin
-         ts := ts & to_unbounded_string (trim (integer'image (integer (cc.day_index)), both)) & ", ";
+         --ts := ts & to_unbounded_string (trim (integer'image (integer (cc.day_index)), both)) & ", ";
          Ts := Ts & To_Unbounded_String (Trim (Integer'Image (Integer (Cc.Cases)), Both)) & ", " & To_Unbounded_String (Trim (Integer'Image (Integer (Cc.cumulative_cases)), Both)) & ", ";
          Put (Tts, Cc.cumulative_cases_density, 4, 1);
          Ts := Ts & Trim (Tts, Both) & ", ";
@@ -174,7 +175,8 @@ package body xph_covid19.serialization is
                             & integer'image(start_day_index) & " to " & integer'image(end_day_index) & ", Opt_by_density: " & minimize_by_density'img);
       ada.text_io.put_line (outf, "#Model parameters:,a1:," & float'image (model.u(a1)) & ",b1:," & float'image (model.u(b1)) & ",b2:," & float'image (model.u(b2)) & ",k1:," & float'image (model.u(k1)) & ",k2:," & float'image (model.u(k2))
                             & ",bend date:," & image (maf (bend).date, iso_date) & ",cumulative cases:," & integer'image(integer (maf (maf'last).cumulative_cases_density_simulated * area)));
-      ada.text_io.put_line (outf, "#Date, Day,Cases,CumCases,CumDens,Rate,CalcRate,CalcDens,CalcCumCases");
+      --ada.text_io.put_line (outf, "#Date, Day,Cases,CumCases,CumDens,Rate,CalcRate,CalcDens,CalcCumCases");
+      ada.text_io.put_line (outf, "#Date,Cases,CumCases,CumDens,Rate,CalcRate,CalcDens,CalcCumCases");
       for n in maf'range loop
          ada.text_io.put_line (outf, create_row_data (maf (n)));
       end loop;

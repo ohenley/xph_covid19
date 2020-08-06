@@ -1,6 +1,7 @@
 with Gnat.Calendar.Time_IO; use Gnat.Calendar.Time_IO;
 -----------------------------------
 with Ada.Calendar; use Ada.Calendar;
+with Ada.Calendar.Delays; use Ada.Calendar.Delays;
 with Ada.Calendar.Arithmetic; use Ada.Calendar.Arithmetic;
 with Ada.Calendar.Formatting;
 -----------------------------------
@@ -65,76 +66,81 @@ package body xph_covid19 is
    end;
 
    function get_number_of_days (end_date : ada.Calendar.Time; start_date : ada.Calendar.Time) return integer is
+      start_duration : Duration := To_Duration (start_date);
+      end_duration : Duration := To_Duration (end_date);
+      delta_duration : Duration := end_duration - start_duration;
    begin
-      return integer (ada.calendar.arithmetic."-" (end_date, start_date));
+      return integer(delta_duration / Day_Duration'last);
+      --return integer (ada.calendar.arithmetic."-" (end_date, start_date));
    end;
 
 
    function sanitize_covid_data (ce : in out country_entries_array; c_data: country_data) return country_entries_array is
       use Ada.Calendar.Formatting;
-
       nbr_days : integer;
       data : country_entries_vector.vector;
       days_span : integer;
+      use Ada.Calendar;
+
+      procedure add_country_entry (c_e : country_entry) is
+         element : country_entry;
+      begin
+         element.date := c_e.date;
+         element.cases := c_e.cases;
+         data.Append (element);
+      end;
+
    begin
 
-      put_line (integer'image(ce'Length));
+      --put_line (integer'image(ce'Length));
 
       nbr_days := get_number_of_days (ce(ce'last).date, ce(ce'first).date);
 
       sort_by_date (ce);
 
-      declare
-         item : country_entry;
-      begin
-         item.date := ce(ce'first).date;
-         item.day_index := 0.0;
-         item.cases := ce(ce'first).cases;
-         item.cumulative_cases := item.cases;
-         item.cumulative_cases_density := item.cumulative_cases / c_data.area;
-         item.infection_rate := ce(ce'first).infection_rate;
-         data.Append (item);
-      end;
-
-      for i in 2 .. ce'length loop
-         days_span := get_number_of_days (ce (i).date, ce (i-1).date);
+      -- treat everyday except last one
+      for i in 1 .. ce'length-1 loop
+         days_span := get_number_of_days (ce (i + 1).date, ce (i).date);
          if days_span > 1 then
-            for j in 1 .. days_span loop
+
+            add_country_entry (ce (i));
+
+            for c in 1 .. days_span - 1 loop
                declare
                   element : country_entry;
                begin
-                  element.date := ada.calendar.arithmetic."+" (ce (i-1).date, Day_Count(j));
+                  element.date := ada.calendar.arithmetic."+" (ce (i).date, day_count(c));
                   element.cases := 0.0;
                   data.Append (element);
                end;
             end loop;
          else
-            declare
-               element : country_entry;
-            begin
-               element.date := ce (i).date;
-               element.cases := ce (i).cases;
-               data.Append (element);
-            end;
+            add_country_entry (ce (i));
          end if;
       end loop;
 
+      -- treat last day
+      add_country_entry (ce(ce'last));
+
+      -- compute 'derivative' data for all days
       for i in 1 .. data.last_index loop
-         data (i).day_index := float(i);
          data (i).cumulative_cases := data (i).cases + data (i - 1).cumulative_cases;
          data (i).cumulative_cases_density := data (i).cumulative_cases / c_data.area;
          data (i).infection_rate := data (i).cumulative_cases - data (i - 1).cumulative_cases;
       end loop;
 
-      --  for item of data loop
-      --     Put_Line ("-----------------------------");
-      --     Put_Line (Image(item.date));
-      --     Put_Line ("day_index: " & float'Image(item.day_index));
-      --     Put_Line ("cases: " & float'Image(item.cases));
-      --     Put_Line ("cumulative_cases: " & float'Image(item.cumulative_cases));
-      --     Put_Line ("cumulative_cases_density: " & float'Image(item.cumulative_cases_density));
-      --     Put_Line ("infection_rate: " & float'Image(item.infection_rate));
-      --  end loop;
+      --Put_Line ("-----------------------------");
+
+      for item of data loop
+         null;
+         --Put_Line ("-----------------------------");
+         --Put_Line (Image(item.date));
+         --Put_Line ("day_index: " & float'Image(item));
+         --Put_Line ("cases: " & float'Image(item.cases));
+         --Put_Line ("cumulative_cases: " & float'Image(item.cumulative_cases));
+         --Put_Line ("cumulative_cases_density: " & float'Image(item.cumulative_cases_density));
+         --Put_Line ("infection_rate: " & float'Image(item.infection_rate));
+      end loop;
 
       return to_country_entries_array (data);
    end;
@@ -219,16 +225,16 @@ package body xph_covid19 is
 
 
    procedure compute_ssrate (c : country;
-                            start_day_index : integer;
-                            end_day_index : integer;
-                            ce : country_entries_array;
-                            a1s : uarray_access;
-                            b1s : uarray_access;
-                            b2s : uarray_access;
-                            k1s : uarray_access;
-                            k2s : uarray_access;
-                            ssrates : out uarray_access;
-                            ssrates_by_density : out uarray_access) is
+                             start_day_index : integer;
+                             end_day_index : integer;
+                             ce : country_entries_array;
+                             a1s : uarray_access;
+                             b1s : uarray_access;
+                             b2s : uarray_access;
+                             k1s : uarray_access;
+                             k2s : uarray_access;
+                             ssrates : out uarray_access;
+                             ssrates_by_density : out uarray_access) is
 
       subtype task_id is integer range 0 .. integer(number_of_cpus);
       subtype valid_task_id is task_id range 1 .. task_id'last;
@@ -262,6 +268,11 @@ package body xph_covid19 is
 
          --start_time: time;
       begin
+
+         --put_line ("first: " & integer'image(first) & " last: " & integer'image(last));
+         --put_line (integer'image(start_day_index));
+         --put_line (integer'image(end_day_index));
+
          --start_time := clock;
          pop_density := all_countries (c).pd;
 
@@ -278,6 +289,7 @@ package body xph_covid19 is
                A := pop_density - cumulative_cases_density;
 
                if A < 0.0 or cumulative_cases_density < 0.0 then
+                  --Put_Line ("OUT!");
                   ssrate := 1.0e9;
                   ssrate_by_density := 1.0e9;
                   exit;
@@ -287,6 +299,7 @@ package body xph_covid19 is
 
                   infection_rate := first_term - second_term;
                   cumulative_cases_density := cumulative_cases_density + infection_rate;
+                  --put_line (float'image(cumulative_cases_density));
 
                   rate_diff := infection_rate - ce (n).infection_rate;
                   ssrate := ssrate + (rate_diff * rate_diff);
@@ -299,6 +312,8 @@ package body xph_covid19 is
 
             ssrates (u) := ssrate;
             ssrates_by_density (u) := ssrate_by_density;
+
+            --put_line ("ssrates_by_density: " & float'image(ssrate_by_density));
 
             --put_line ("Evaluating compute_ssrate completed in " & duration'image (clock - start_time) & " s.");
 
@@ -334,11 +349,16 @@ package body xph_covid19 is
       end if;
 
       for u in ssrates_access'range loop
+         --put_line (float'image (ssrates_access (u)) & " " & integer'image (u));
          if ssrates_access (u) < smallest and ssrates_access (u) > 0.0 then
-            --put_line (float'image (ssrates_access (u)) & " " & integer'image (u));
+            put_line (float'image (ssrates_access (u)) & " " & integer'image (u));
             index := u;
             smallest := ssrates_access (u);
+         else
+            null;
+            --put_line (float'image(smallest));
          end if;
+
       end loop;
       min_rate := smallest;
 
@@ -347,7 +367,7 @@ package body xph_covid19 is
       return index;
    end;
 
-   function characterize_best_model (model : in out model_parameters;
+   procedure characterize_best_model (model : in out model_parameters;
                                       a1s : uarray_access;
                                       b1s : uarray_access;
                                       b2s : uarray_access;
@@ -355,15 +375,11 @@ package body xph_covid19 is
                                       k2s : uarray_access;
                                       ssrates : uarray_access;
                                       ssrates_by_density : uarray_access;
-                                      minimize_by_density : boolean) return boolean is
+                                      minimize_by_density : boolean) is
       best_unknown_set_index : integer := -1;
       min_rate : float := 0.0;
    begin
       best_unknown_set_index := find_smallest_ssrate (ssrates, ssrates_by_density, minimize_by_density, min_rate);
-
-      if best_unknown_set_index > a1s'length or min_rate > 1.0 then
-         return false;
-      end if;
 
       model.u(a1) := a1s(best_unknown_set_index);
       model.u(b1) := b1s(best_unknown_set_index);
@@ -372,7 +388,6 @@ package body xph_covid19 is
       model.u(k2) := k2s(best_unknown_set_index);
       model.min_rate := min_rate;
 
-      return true;
    end;
 
 
@@ -409,7 +424,7 @@ package body xph_covid19 is
 
       end loop;
 
-      Put_Line (float'image(ce(ce'last).cumulative_cases_simulated));
+      Put_Line ("PROJECTED TOTAL CASES: " & float'image(ce(ce'last).cumulative_cases_simulated));
 
    end;
 
@@ -441,7 +456,7 @@ package body xph_covid19 is
       start_time := clock;
       put_line ("Start ZOOMING.");
 
-      while improvement >= minimal_improvement_percentage and converging loop
+      while improvement >= minimal_improvement_percentage loop
 
          last_model := model;
 
@@ -455,15 +470,15 @@ package body xph_covid19 is
                          ssrates,
                          ssrates_by_density);
 
-         converging := characterize_best_model (model,
-                                                a1s, b1s, b2s, k1s, k2s,
-                                                ssrates,
-                                                ssrates_by_density,
-                                                minimize_by_density);
+         characterize_best_model (model,
+                                  a1s, b1s, b2s, k1s, k2s,
+                                  ssrates,
+                                  ssrates_by_density,
+                                  minimize_by_density);
 
          improvement := compute_fitting_improvement (model, last_model);
 
-         if improvement < 0.0 and converging then
+         if improvement < 0.0 then
             model := last_model;
          end if;
 
@@ -486,7 +501,7 @@ package body xph_covid19 is
       for n in ce'last + 1 .. forecast_ce'last loop
 
          forecast_ce (n).date := forecast_ce (n - 1).date + 1;
-         forecast_ce (n).day_index := forecast_ce (n - 1).day_index + 1.0;
+         --forecast_ce (n).day_index := forecast_ce (n - 1).day_index + 1.0;
          forecast_ce (n).infection_rate_simulated := model.u(k1) * ((pop_density - forecast_ce (n - 1).cumulative_cases_density_simulated) ** model.u(a1)) * (forecast_ce (n - 1).cumulative_cases_density_simulated ** model.u(b1))-model.u(k2) * forecast_ce (n - 1).cumulative_cases_density_simulated ** model.u(b2);
          forecast_ce (n).cumulative_cases_density_simulated := forecast_ce (n - 1).cumulative_cases_density_simulated + forecast_ce (n).infection_rate_simulated;
          forecast_ce (n).cumulative_cases_simulated := forecast_ce (n).cumulative_cases_density_simulated * area;

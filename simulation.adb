@@ -46,7 +46,7 @@ begin
    cmd_line : loop
       case getopt ("s: d e:") is
          when ascii.nul => exit;
-         when 's' => start_day_index := integer'value(parameter);  -- get the start day for modeling e.g. -s 15
+            when 's' => start_day_index := integer'value(parameter);  -- get the start day for modeling e.g. -s 15
          when 'e' => end_day_index := integer'value(parameter); -- get the end day for modeling e.g. -e 60
          when 'd' =>
             minimize_by_density := true; -- minimize by density, not rates
@@ -87,7 +87,6 @@ begin
          covid_data : country_entries_array := sanitize_covid_data (ce, all_countries (c));
          model : model_parameters;
          forecast_ce : country_entries_array (1 .. fore_term);
-         converging : boolean;
       begin
 
          time1 := clock;
@@ -104,7 +103,7 @@ begin
                          ssrates,
                          ssrates_by_density);
 
-         converging := characterize_best_model (model,
+         characterize_best_model (model,
                                   ua1,
                                   ub1,
                                   ub2,
@@ -112,44 +111,41 @@ begin
                                   uk2,
                                   ssrates,
                                   ssrates_by_density,
-                                                minimize_by_density);
-
-         if converging then
-
-            show_model_unknows (model);
-
-            zoom (c,
-                  steps,
-                  start_day_index,
-                  end_day_index,
-                  covid_data,
-                  minimize_by_density,
-                  ua1,
-                  ub1,
-                  ub2,
-                  uk1,
-                  uk2,
-                  ssrates,
-                  ssrates_by_density,
-                  model,
-                  4.0,
-                  minimal_improvement_percentage);
+                                  minimize_by_density);
 
 
-            show_model_unknows (model);
+         show_model_unknows (model);
 
-            put_line ("Evaluating all unknowns completed in " & duration'image (clock - time1) & " s.");
+         zoom (c,
+               steps,
+               start_day_index,
+               end_day_index,
+               covid_data,
+               minimize_by_density,
+               ua1,
+               ub1,
+               ub2,
+               uk1,
+               uk2,
+               ssrates,
+               ssrates_by_density,
+               model,
+               4.0,
+               minimal_improvement_percentage);
 
-            compute_simulated_rate (c, start_day_index, covid_data, model);
 
-            compute_forecast (c, covid_data, forecast_ce, model);
+         show_model_unknows (model);
 
-            bend := detect_bend (forecast_ce, bend_percent);
+         put_line ("Evaluating all unknowns completed in " & duration'image (clock - time1) & " s.");
 
-            first_case := detect_first_case (ce, forecast_ce);
-         else
-            put_line ("NOT CONVERGING. Try changing the -s [start day] -e [end day] range.");
-         end if;
+         compute_simulated_rate (c, start_day_index, covid_data, model);
+
+         compute_forecast (c, covid_data, forecast_ce, model);
+
+         bend := detect_bend (forecast_ce, bend_percent);
+
+         first_case := detect_first_case (ce, forecast_ce);
+
 
          -- produce data out
          declare
